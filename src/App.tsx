@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useAuth } from './hooks/useAuth';
 import { useEntries } from './hooks/useEntries';
 import { useCategories } from './hooks/useCategories';
@@ -8,7 +8,9 @@ import { ItemList } from './components/ItemList';
 import { NotesSection } from './components/NotesSection';
 import { CategoryModal } from './components/CategoryModal';
 import { ConfirmDialog } from './components/ConfirmDialog';
-import { DailyEntry, JournalItem, NoteBlock, emptyItem, todayStr, weekdayStr, uid } from './types';
+import { DailyEntry, JournalItem, NoteBlock, emptyEntry, emptyItem, todayStr, weekdayStr, uid } from './types';
+
+const RECENT_HISTORY_COUNT = 10;
 
 export default function App() {
   const { user, loading: authLoading, logout } = useAuth();
@@ -21,9 +23,28 @@ export default function App() {
   const [blockersCollapsed, setBlockersCollapsed] = useState(false);
   const [catModalOpen, setCatModalOpen] = useState(false);
   const [confirm, setConfirm] = useState<{ message: string; onConfirm: () => void } | null>(null);
-  const [historyEntries, setHistoryEntries] = useState<{ date: string; entry: DailyEntry }[]>([]);
+  const [historyDates, setHistoryDates] = useState<string[]>([]);
+  const [entryCache, setEntryCacheState] = useState<Record<string, DailyEntry>>({});
+  const [historyFullyLoaded, setHistoryFullyLoaded] = useState(false);
+  const [loadingAllHistory, setLoadingAllHistory] = useState(false);
+  const entryCacheRef = useRef<Record<string, DailyEntry>>({});
 
-  // Load history list (dates + entries) whenever the current entry changes
+  const mergeEntryCache = (updates: Record<string, DailyEntry>) => {
+    entryCacheRef.current = { ...entryCacheRef.current, ...updates };
+    setEntryCacheState(entryCacheRef.current);
+  };
+
+  const loadDatesContent = async (dates: string[]) => {
+    const missing = dates.filter((d) => !(d in entryCacheRef.current));
+    if (missing.length === 0) return;
+    const loaded = await Promise.all(
+      missing.map(async (d) => [d, (await loadEntry(d)) ?? emptyEntry()] as const)
+    );
+    mergeEntryCache(Object.fromEntries(loaded));
+  };
+
+  // Refresh the date list (cheap) and the most recent entries' content whenever
+  // the current entry changes. Older entries are only fetched on demand (search).
   useEffect(() => {
     if (!user) return;
     (async () => {
@@ -31,16 +52,26 @@ export default function App() {
       const set = new Set(dates);
       set.add(currentDate);
       const sorted = [...set].sort().reverse();
-      const items = await Promise.all(
-        sorted.map(async (date) => {
-          const e = date === currentDate ? entry : await loadEntry(date);
-          return { date, entry: e ?? { yesterday: [], today: [], blockers: [], notes: [] } };
-        })
-      );
-      setHistoryEntries(items);
+      setHistoryDates(sorted);
+      setHistoryFullyLoaded(false);
+      mergeEntryCache({ [currentDate]: entry });
+      await loadDatesContent(sorted.slice(0, RECENT_HISTORY_COUNT));
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, currentDate, entry]);
+
+  const ensureAllHistoryLoaded = async () => {
+    if (historyFullyLoaded || loadingAllHistory) return;
+    setLoadingAllHistory(true);
+    await loadDatesContent(historyDates);
+    setHistoryFullyLoaded(true);
+    setLoadingAllHistory(false);
+  };
+
+  const historyEntries = useMemo(
+    () => historyDates.map((date) => ({ date, entry: entryCache[date] })),
+    [historyDates, entryCache]
+  );
 
   const hoursTotal = useMemo(() => {
     return entry.yesterday.reduce((sum, i) => sum + (typeof i.hours === 'number' ? i.hours : 0), 0);
@@ -82,8 +113,9 @@ export default function App() {
       onConfirm: async () => {
         await deleteEntry(date);
         setConfirm(null);
+        const dates = await listEntryDates();
+        setHistoryDates((prev) => prev.filter((d) => d !== date));
         if (date === currentDate) {
-          const dates = await listEntryDates();
           const next = dates.find((d) => d !== date) || todayStr();
           switchToDate(next);
         }
@@ -97,6 +129,9 @@ export default function App() {
         currentDate={currentDate}
         categories={categories}
         historyEntries={historyEntries}
+        historyFullyLoaded={historyFullyLoaded}
+        loadingAllHistory={loadingAllHistory}
+        onEnsureAllHistoryLoaded={ensureAllHistoryLoaded}
         onSwitchDate={switchToDate}
         onNewToday={() => switchToDate(todayStr())}
         onOpenCategoryModal={() => setCatModalOpen(true)}
