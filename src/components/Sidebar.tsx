@@ -135,6 +135,7 @@ export function Sidebar({
           className="new-btn"
           onClick={() => {
             onNewToday();
+            setPastDate(todayStr());
             setExpanded(false);
           }}
         >
