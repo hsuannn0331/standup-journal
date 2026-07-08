@@ -10,7 +10,7 @@ export function ConfirmDialog({ open, message, onConfirm, onCancel }: Props) {
   return (
     <div className="modal-overlay">
       <div className="modal" style={{ width: 300 }}>
-        <h3>確定要刪除嗎?</h3>
+        <h3>確定要刪除嗎？</h3>
         <p className="modal-message">{message}</p>
         <div className="modal-actions">
           <button className="secondary-btn" onClick={onCancel}>

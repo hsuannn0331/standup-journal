@@ -78,7 +78,7 @@ export default function App() {
 
   const requestDeleteEntry = (date: string) => {
     setConfirm({
-      message: `刪除「${date}」的紀錄後將無法復原,確定要刪除嗎?`,
+      message: `刪除「${date}」的紀錄後將無法復原，確定要刪除嗎？`,
       onConfirm: async () => {
         await deleteEntry(date);
         setConfirm(null);
@@ -198,7 +198,7 @@ export default function App() {
         onSave={saveCategories}
         onRequestDelete={(cat, onConfirmed) =>
           setConfirm({
-            message: `刪除分類「${cat.name}」後將無法復原,確定要刪除嗎?`,
+            message: `刪除分類「${cat.name}」後將無法復原，確定要刪除嗎？`,
             onConfirm: () => {
               onConfirmed();
               setConfirm(null);

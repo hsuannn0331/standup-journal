@@ -104,7 +104,7 @@ export function ItemList({
   };
 
   const removeItem = (id: string) => {
-    onRequestDelete('刪除後將無法復原,確定要刪除這個項目嗎?', () => {
+    onRequestDelete('刪除後將無法復原，確定要刪除這個項目嗎？', () => {
       onChange(items.filter((i) => i.id !== id));
       if (editingId === id) setEditingId(null);
     });
