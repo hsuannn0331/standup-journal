@@ -227,6 +227,12 @@ section.block.collapsed .empty-hint { display: none; }
   border: 1px solid var(--border); border-radius: 9px; padding: 9px 10px;
 }
 .item-row-top { display: flex; align-items: flex-start; gap: 8px; }
+.item-row.dragging, .note-block.dragging { opacity: 0.4; }
+.drag-handle {
+  cursor: grab; color: var(--ink-faint); font-size: 15px; line-height: 1; flex-shrink: 0;
+  width: 16px; padding: 2px 0; user-select: none; align-self: center; text-align: center;
+}
+.drag-handle:active { cursor: grabbing; }
 .item-row textarea {
   flex: 1; border: none; resize: none; overflow: hidden; font-family: inherit;
   font-size: 14px; color: var(--ink); background: transparent; line-height: 1.5; padding: 2px 0; min-height: 22px;
@@ -244,7 +250,7 @@ section.block.collapsed .empty-hint { display: none; }
 }
 .hours-field label { font-size: 11px; color: var(--ink-faint); white-space: nowrap; }
 
-.item-tags { display: flex; gap: 5px; flex-wrap: wrap; width: 100%; justify-content: flex-start; }
+.item-tags { display: flex; gap: 5px; flex-wrap: wrap; width: calc(100% - 24px); margin-left: 24px; justify-content: flex-start; }
 .item-tag {
   font-size: 10px; padding: 2px 7px; border-radius: 100px; color: #fff; cursor: pointer;
   white-space: nowrap; opacity: 0.55;
@@ -270,7 +276,7 @@ section.block.collapsed .empty-hint { display: none; }
   padding: 4px 10px; cursor: pointer; font-family: inherit; flex-shrink: 0; align-self: flex-start;
 }
 .confirm-btn:hover { opacity: 0.88; }
-.item-tags-display { display: flex; gap: 5px; flex-wrap: wrap; width: 100%; }
+.item-tags-display { display: flex; gap: 5px; flex-wrap: wrap; width: calc(100% - 24px); margin-left: 24px; }
 .item-tag-display { font-size: 10px; padding: 2px 7px; border-radius: 100px; color: #fff; }
 
 /* ---------- Notes ---------- */

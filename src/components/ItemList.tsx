@@ -98,6 +98,16 @@ export function ItemList({
   onRequestDelete,
 }: Props) {
   const catById = (id: string) => categories.find((c) => c.id === id);
+  const dragIndex = useRef<number | null>(null);
+  const [draggingIndex, setDraggingIndex] = useState<number | null>(null);
+
+  const reorder = (from: number, to: number) => {
+    if (from === to) return;
+    const next = [...items];
+    const [moved] = next.splice(from, 1);
+    next.splice(to, 0, moved);
+    onChange(next);
+  };
 
   const updateItem = (id: string, patch: Partial<JournalItem>) => {
     onChange(items.map((i) => (i.id === id ? { ...i, ...patch } : i)));
@@ -125,11 +135,43 @@ export function ItemList({
 
   return (
     <div className="items">
-      {items.map((item) => {
+      {items.map((item, index) => {
         const isEditing = editingId === item.id;
         return (
-          <div className="item-row" key={item.id}>
+          <div
+            className={'item-row' + (draggingIndex === index ? ' dragging' : '')}
+            key={item.id}
+            onDragOver={(e) => {
+              e.preventDefault();
+              if (dragIndex.current !== null && dragIndex.current !== index) {
+                reorder(dragIndex.current, index);
+                dragIndex.current = index;
+                setDraggingIndex(index);
+              }
+            }}
+            onDrop={(e) => {
+              e.preventDefault();
+              dragIndex.current = null;
+              setDraggingIndex(null);
+            }}
+          >
             <div className="item-row-top">
+              <span
+                className="drag-handle"
+                title="拖曳排序"
+                draggable
+                onDragStart={(e) => {
+                  dragIndex.current = index;
+                  setDraggingIndex(index);
+                  e.dataTransfer.effectAllowed = 'move';
+                }}
+                onDragEnd={() => {
+                  dragIndex.current = null;
+                  setDraggingIndex(null);
+                }}
+              >
+                ⠿
+              </span>
               {isEditing ? (
                 <>
                   <AutoResizeTextarea

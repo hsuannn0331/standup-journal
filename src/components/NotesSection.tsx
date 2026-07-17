@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { NoteBlock } from '../types';
 
 interface Props {
@@ -37,6 +37,17 @@ function AutoResizeTextarea({
 }
 
 export function NotesSection({ notes, editingId, setEditingId, onChange, onRequestDelete }: Props) {
+  const dragIndex = useRef<number | null>(null);
+  const [draggingIndex, setDraggingIndex] = useState<number | null>(null);
+
+  const reorder = (from: number, to: number) => {
+    if (from === to) return;
+    const next = [...notes];
+    const [moved] = next.splice(from, 1);
+    next.splice(to, 0, moved);
+    onChange(next);
+  };
+
   const update = (id: string, patch: Partial<NoteBlock>) => {
     onChange(notes.map((n) => (n.id === id ? { ...n, ...patch } : n)));
   };
@@ -54,11 +65,43 @@ export function NotesSection({ notes, editingId, setEditingId, onChange, onReque
 
   return (
     <div>
-      {notes.map((note) => {
+      {notes.map((note, index) => {
         const isEditing = editingId === note.id;
         return (
-          <div className="note-block" key={note.id}>
+          <div
+            className={'note-block' + (draggingIndex === index ? ' dragging' : '')}
+            key={note.id}
+            onDragOver={(e) => {
+              e.preventDefault();
+              if (dragIndex.current !== null && dragIndex.current !== index) {
+                reorder(dragIndex.current, index);
+                dragIndex.current = index;
+                setDraggingIndex(index);
+              }
+            }}
+            onDrop={(e) => {
+              e.preventDefault();
+              dragIndex.current = null;
+              setDraggingIndex(null);
+            }}
+          >
             <div className="note-block-header">
+              <span
+                className="drag-handle"
+                title="拖曳排序"
+                draggable
+                onDragStart={(e) => {
+                  dragIndex.current = index;
+                  setDraggingIndex(index);
+                  e.dataTransfer.effectAllowed = 'move';
+                }}
+                onDragEnd={() => {
+                  dragIndex.current = null;
+                  setDraggingIndex(null);
+                }}
+              >
+                ⠿
+              </span>
               {isEditing ? (
                 <>
                   <input
